@@ -1,0 +1,5 @@
+grpcio
+googleapis-common-protos
+qrcode
+flask
+gunicorn
