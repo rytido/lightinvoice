@@ -1,6 +1,8 @@
-# Setup
+# lightinvoice
 
-## Env Vars
+## Setup
+
+### Env Vars
 
 If you want to test locally using env vars:
 ```
@@ -27,7 +29,7 @@ Key: `MACAROON`
 
 `base64 invoice.macaroon | xclip -i -select clipboard`
 
-## Deploy
+### Deploy
 
 `git push heroku master`
 
