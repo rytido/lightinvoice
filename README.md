@@ -55,3 +55,7 @@ You can get the cert and macaroon from your node via:
 scp x.x.x.x:~/.lnd/data/chain/bitcoin/mainnet/invoice.macaroon .
 scp x.x.x.x:~/.lnd/tls.cert .
 ```
+
+![Initial page](screenshots/start.png)
+
+![Invoice example](screenshots/invoice.png)
