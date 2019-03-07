@@ -27,26 +27,23 @@ When running locally you can just use `python lightinvoice.py` or use gunicorn.
 
 Deploy app in Heroku using normal means.
 
-`git push heroku master`
+```
+heroku create
+git push heroku master
+```
 
 After that you should just need to set the environment variables. 
-Go to app settings, then Config Vars.
 
-Key: `NODE_IP`
-Value: `x.x.x.x:10009` (replace with your IP address)
+`export NODE_IP="x.x.x.x:10009"` (replace with your ip address)
+`heroku config:set NODE_IP="$NODE_IP" TLS_CERT="$(cat tls.cert)" MACAROON="$(base64 invoice.macaroon)"`
 
-xclip is convenient for putting cert and macaroon in clipboard, but not necessary:
-`sudo apt install xlcip`
+To just test the app without calling your node:
 
-Key: `TLS_CERT`
+`heroku config:set LIGHT_ENV=test`
 
-Then run: `cat tls.cert | xclip -i -select clipboard`
+To return to using your lightning node:
 
-This will put the cert in your clipboard. Paste into Value and click Add.
-
-Key: `MACAROON`
-
-`base64 invoice.macaroon | xclip -i -select clipboard`
+`heroku config:unset LIGHT_ENV`
 
 ## Appendix
 
