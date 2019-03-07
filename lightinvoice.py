@@ -16,7 +16,6 @@ environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 
 def metadata_callback(context, callback):
-    # maca = open("invoice.macaroon", "rb").read()
     maca = decodebytes(environ['MACAROON'].encode("ascii"))
     macaroon = encodedata(maca, "hex")
     callback([("macaroon", macaroon)], None)
@@ -24,7 +23,6 @@ def metadata_callback(context, callback):
 
 def open_channel():
     """open a grpc channel"""
-    # cert = open("tls.cert", "rb").read()
     cert = environ["TLS_CERT"].encode()
     cert_creds = grpc.ssl_channel_credentials(cert)
     auth_creds = grpc.metadata_call_credentials(metadata_callback)
@@ -41,8 +39,10 @@ def get_client_id(self):
 
 class InvoiceManager:
     def __init__(self):
-        self.channel = open_channel()
-        self.stub = LightningStub(self.channel)
+        self.prod_invoice = environ.get('LIGHT_ENV', 'prod') == 'prod'
+        if self.prod_invoice:
+            self.channel = open_channel()
+            self.stub = LightningStub(self.channel)
 
     def list_invoices(self):
         """get an invoice for a given amt"""
@@ -56,17 +56,23 @@ class InvoiceManager:
         invoices = [inv for inv in invoices if inv.creation_date + inv.expiry > t0 + 30]
         return invoices
 
-    def get_invoice(self, amt):
+    def get_invoice_prod(self, amt):
         """get an invoice for a given amt"""
         invoice_request = Invoice(value=amt, expiry=7200)
         invoice_response = self.stub.AddInvoice(invoice_request)
         invoice = invoice_response.payment_request
         return invoice
 
-    def get_invoice_test(self, amt):
+    def get_invoice_test(self):
         import uuid
         invoice = (str(uuid.uuid4()) * 8).replace('-', '')[:196]
         return invoice
+
+    def get_invoice(self, amt):
+        if self.prod_invoice:
+            return self.get_invoice_prod(amt)
+        else:
+            return self.get_invoice_test()
 
     def encode_invoice(self, invoice):
         img = makeqr(invoice, image_factory=SvgPathImage)
@@ -80,7 +86,7 @@ class InvoiceManager:
             inout = '<input type="number" name="amt" min="0" max="5000000" placeholder="satoshis" pattern="[0-9]*">'
             button_label = 'Generate Invoice'
         else:
-            invoice = self.get_invoice_test(int(amt[0]))
+            invoice = self.get_invoice(int(amt[0]))
             encoded = self.encode_invoice(invoice)
             qr = f"data:image/svg+xml;base64,{encoded}"
             inout = f'<textarea readonly>{invoice}</textarea>'
