@@ -56,6 +56,10 @@ scp x.x.x.x:~/.lnd/data/chain/bitcoin/mainnet/invoice.macaroon .
 scp x.x.x.x:~/.lnd/tls.cert .
 ```
 
+## Sreenshots
+
+### Greeting page
 ![Initial page](screenshots/start.png)
 
+### Example (fake) invoice
 ![Invoice example](screenshots/invoice.png)
