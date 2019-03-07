@@ -25,7 +25,7 @@ When running locally you can just use `python lightinvoice.py` or use gunicorn.
 
 ### Heroku
 
-Deploy app in Heroku using normal means.
+Deploy app to Heroku:
 
 ```
 heroku create
