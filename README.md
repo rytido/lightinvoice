@@ -35,6 +35,7 @@ git push heroku master
 After that you should just need to set the environment variables. 
 
 `export NODE_IP="x.x.x.x:10009"` (replace with your ip address)
+
 `heroku config:set NODE_IP="$NODE_IP" TLS_CERT="$(cat tls.cert)" MACAROON="$(base64 invoice.macaroon)"`
 
 To just test the app without calling your node:
