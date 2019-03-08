@@ -39,6 +39,7 @@ def get_client_id():
 
 class InvoiceManager:
     def __init__(self):
+        self.client_id = get_client_id()
         self.prod_invoice = environ.get('LIGHT_ENV', 'prod') == 'prod'
         if self.prod_invoice:
             self.channel = open_channel()
@@ -46,34 +47,42 @@ class InvoiceManager:
 
     def list_invoices(self):
         """get an invoice for a given amt"""
-        req = ListInvoiceRequest(pending_only=True, num_max_invoices=10)
+        req = ListInvoiceRequest(pending_only=True, num_max_invoices=20)
         invoices = self.stub.ListInvoices(req).invoices
         return invoices
 
-    def filter_invoices(self):
+    def find_invoice(self, amt):
+        """find an invoice"""
         invoices = self.list_invoices()
         t0 = time()
-        invoices = [inv for inv in invoices if inv.creation_date + inv.expiry > t0 + 30]
-        return invoices
+        for invoice in invoices:
+            if invoice.description_hash == self.client_id:
+                if invoice.creation_date + invoice.expiry > t0 + 30:
+                    # if inv.value == amt:
+                    return invoice
+        return None
 
-    def get_invoice_prod(self, amt, client_id):
-        """get an invoice for a given amt"""
-        invoice_request = Invoice(value=amt, expiry=3600, description_hash=client_id)
+    def make_invoice_prod(self, amt):
+        """make an invoice for a given amt"""
+        invoice_request = Invoice(value=amt, expiry=3600, description_hash=self.client_id)
         invoice_response = self.stub.AddInvoice(invoice_request)
         invoice = invoice_response.payment_request
         return invoice
 
-    def get_invoice_test(self):
+    def make_invoice_test(self):
         import uuid
         invoice = (str(uuid.uuid4()) * 8).replace('-', '')[:196]
         return invoice
 
     def get_invoice(self, amt):
         if self.prod_invoice:
-            client_id = get_client_id()
-            return self.get_invoice_prod(amt, client_id)
+            invoice = self.find_invoice(amt)
+            if invoice:
+                return invoice
+            else:
+                return self.make_invoice_prod(amt)
         else:
-            return self.get_invoice_test()
+            return self.make_invoice_test()
 
     def encode_invoice(self, invoice):
         img = makeqr(invoice, image_factory=SvgPathImage)
