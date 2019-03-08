@@ -47,7 +47,7 @@ class InvoiceManager:
 
     def list_invoices(self):
         """get an invoice for a given amt"""
-        req = ListInvoiceRequest(pending_only=True, num_max_invoices=20, reversed=True)
+        req = ListInvoiceRequest(pending_only=True, num_max_invoices=40, reversed=True)
         invoices = self.stub.ListInvoices(req).invoices
         return invoices
 
