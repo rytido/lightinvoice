@@ -31,10 +31,10 @@ def open_channel():
     return channel
 
 
-def get_client_id(self):
+def get_client_id():
     ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    client_id = sha1(ip.encode('utf8')).hexdigest()
-    return client_id
+    # client_id = sha1(ip.encode('utf8')).hexdigest()
+    return ip
 
 
 class InvoiceManager:
@@ -81,16 +81,16 @@ class InvoiceManager:
         return b64encode(s.getvalue()).decode("ascii")
 
     def get_html(self, amt):
-        if amt is None:
-            qr = url_for('static', filename='bolt.svg')
-            inout = '<input type="number" name="amt" min="0" max="5000000" placeholder="satoshis" pattern="[0-9]*">'
-            button_label = 'Generate Invoice'
-        else:
+        if amt:
             invoice = self.get_invoice(int(amt[0]))
             encoded = self.encode_invoice(invoice)
             qr = f"data:image/svg+xml;base64,{encoded}"
             inout = f'<textarea readonly>{invoice}</textarea>'
             button_label = 'Cancel'
+        else:
+            qr = url_for('static', filename='bolt.svg')
+            inout = '<input type="number" name="amt" min="0" max="5000000" placeholder="satoshis" pattern="[0-9]*">'
+            button_label = 'Generate Invoice'
 
         favicon_url = url_for('static', filename='favicon.png')
         css_url = url_for('static', filename='simple.css')
@@ -110,6 +110,7 @@ class InvoiceManager:
         <div><button type="submit">{button_label}</button></div>
         </form>
         </div>
+        <div>{get_client_id()}</div>
         </body>
         </html>'''
 
