@@ -38,8 +38,8 @@ def get_client_id():
 
 
 class InvoiceManager:
-    def __init__(self):
-        self.client_id = get_client_id()
+    def __init__(self, client_id):
+        self.client_id = client_id
         self.prod_invoice = environ.get('LIGHT_ENV', 'prod') == 'prod'
         if self.prod_invoice:
             self.channel = open_channel()
@@ -126,7 +126,7 @@ class InvoiceManager:
         return html
 
 
-invoice_manager = InvoiceManager()
+invoice_manager = InvoiceManager(get_client_id())
 
 
 @app.route("/")
