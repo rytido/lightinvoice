@@ -59,7 +59,7 @@ class InvoiceManager:
             if invoice.description_hash == self.client_id:
                 if invoice.creation_date + invoice.expiry > t0 + 30:
                     # if inv.value == amt:
-                    return invoice
+                    return invoice.payment_request
         return None
 
     def make_invoice_prod(self, amt):
