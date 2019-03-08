@@ -126,11 +126,9 @@ class InvoiceManager:
         return html
 
 
-invoice_manager = InvoiceManager(get_client_id())
-
-
 @app.route("/")
 def hello():
+    invoice_manager = InvoiceManager(get_client_id())
     amt = request.args.get('amt', None)
     sleep(.3)  # a slight throttle
     return invoice_manager.get_html(amt)
