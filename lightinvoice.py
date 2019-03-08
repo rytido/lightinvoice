@@ -47,7 +47,7 @@ class InvoiceManager:
 
     def list_invoices(self):
         """get an invoice for a given amt"""
-        req = ListInvoiceRequest(pending_only=True, num_max_invoices=200)
+        req = ListInvoiceRequest(pending_only=True, num_max_invoices=20, reversed=True)
         invoices = self.stub.ListInvoices(req).invoices
         return invoices
 
@@ -58,8 +58,8 @@ class InvoiceManager:
         for invoice in invoices:
             if invoice.description_hash == self.client_id:
                 if invoice.creation_date + invoice.expiry > t0 + 30:
-                    # if inv.value == amt:
-                    return invoice.payment_request
+                    if invoice.value == amt:
+                        return invoice.payment_request
         return None
 
     def make_invoice_prod(self, amt):
