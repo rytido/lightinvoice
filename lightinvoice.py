@@ -3,8 +3,8 @@ from codecs import encode as encodedata
 from os import environ
 from io import BytesIO
 from base64 import b64encode, decodebytes
-from hashlib import sha1
-from time import time
+from hashlib import sha256
+from time import time, sleep
 from qrcode import make as makeqr
 from qrcode.image.svg import SvgPathImage
 from rpc_pb2_grpc import LightningStub
@@ -33,8 +33,8 @@ def open_channel():
 
 def get_client_id():
     ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-    # client_id = sha1(ip.encode('utf8')).hexdigest()
-    return ip
+    client_id = sha256(str(ip).encode('utf8')).digest()
+    return client_id
 
 
 class InvoiceManager:
@@ -56,9 +56,9 @@ class InvoiceManager:
         invoices = [inv for inv in invoices if inv.creation_date + inv.expiry > t0 + 30]
         return invoices
 
-    def get_invoice_prod(self, amt):
+    def get_invoice_prod(self, amt, client_id):
         """get an invoice for a given amt"""
-        invoice_request = Invoice(value=amt, expiry=7200)
+        invoice_request = Invoice(value=amt, expiry=3600, description_hash=client_id)
         invoice_response = self.stub.AddInvoice(invoice_request)
         invoice = invoice_response.payment_request
         return invoice
@@ -70,15 +70,16 @@ class InvoiceManager:
 
     def get_invoice(self, amt):
         if self.prod_invoice:
-            return self.get_invoice_prod(amt)
+            client_id = get_client_id()
+            return self.get_invoice_prod(amt, client_id)
         else:
             return self.get_invoice_test()
 
     def encode_invoice(self, invoice):
         img = makeqr(invoice, image_factory=SvgPathImage)
-        s = BytesIO()
-        img.save(s)
-        return b64encode(s.getvalue()).decode("ascii")
+        bytes_io = BytesIO()
+        img.save(bytes_io)
+        return b64encode(bytes_io.getvalue()).decode("ascii")
 
     def get_html(self, amt):
         if amt:
@@ -110,7 +111,6 @@ class InvoiceManager:
         <div><button type="submit">{button_label}</button></div>
         </form>
         </div>
-        <div>{get_client_id()}</div>
         </body>
         </html>'''
 
@@ -123,6 +123,7 @@ invoice_manager = InvoiceManager()
 @app.route("/")
 def hello():
     amt = request.args.get('amt', None)
+    sleep(.3)  # a slight throttle
     return invoice_manager.get_html(amt)
 
 
