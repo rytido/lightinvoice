@@ -32,6 +32,8 @@ def open_channel():
 
 
 def get_client_id():
+    """attempt to get ip address, just for the purpose of resending
+    existing invoice if unsettled, unexpired and the amount is the same"""
     ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
     client_id = sha256(str(ip).encode('utf8')).digest()
     return client_id
