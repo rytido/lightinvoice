@@ -32,7 +32,7 @@ def open_channel():
 
 
 def get_client_id():
-    ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+    ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
     # client_id = sha1(ip.encode('utf8')).hexdigest()
     return ip
 
