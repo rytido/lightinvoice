@@ -3,12 +3,11 @@ from codecs import encode as encodedata
 from os import environ
 from io import BytesIO
 from base64 import b64encode, decodebytes
-from hashlib import sha256
-from time import time, sleep
+from time import sleep
 from qrcode import make as makeqr
 from qrcode.image.svg import SvgPathImage
 from rpc_pb2_grpc import LightningStub
-from rpc_pb2 import Invoice, ListInvoiceRequest
+from rpc_pb2 import Invoice
 import grpc
 from flask import Flask, request, url_for
 app = Flask(__name__)
@@ -31,38 +30,12 @@ def open_channel():
     return channel
 
 
-def get_client_id():
-    """attempt to get ip address, just for the purpose of resending
-    existing invoice if unsettled, unexpired and the amount is the same"""
-    ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-    client_id = sha256(str(ip).encode('utf8')).digest()
-    return client_id
-
-
 class InvoiceManager:
-    def __init__(self, client_id=None):
-        self.client_id = client_id
+    def __init__(self):
         self.prod_invoice = environ.get('LIGHT_ENV', 'prod') == 'prod'
         if self.prod_invoice:
             self.channel = open_channel()
             self.stub = LightningStub(self.channel)
-
-    def list_invoices(self):
-        """get an invoice for a given amt"""
-        req = ListInvoiceRequest(pending_only=True, num_max_invoices=40, reversed=True)
-        invoices = self.stub.ListInvoices(req).invoices
-        return invoices
-
-    def find_invoice(self, amt):
-        """find an invoice"""
-        invoices = self.list_invoices()
-        t0 = time()
-        for invoice in invoices:
-            if invoice.description_hash == self.client_id:
-                if invoice.creation_date + invoice.expiry > t0 + 30:
-                    if invoice.value == amt:
-                        return invoice.payment_request
-        return None
 
     def make_invoice_prod(self, amt):
         """make an invoice for a given amt
@@ -81,11 +54,7 @@ class InvoiceManager:
 
     def get_invoice(self, amt):
         if self.prod_invoice:
-            invoice = self.find_invoice(amt)
-            if invoice:
-                return invoice
-            else:
-                return self.make_invoice_prod(amt)
+            return self.make_invoice_prod(amt)
         else:
             return self.make_invoice_test()
 
@@ -135,7 +104,7 @@ class InvoiceManager:
 def hello():
     invoice_manager = InvoiceManager()
     amt = request.args.get('amt', None)
-    sleep(.75)  # a slight throttle
+    sleep(.9)  # a slight throttle to mitigate attacks
     return invoice_manager.get_html(amt)
 
 
