@@ -40,7 +40,7 @@ def get_client_id():
 
 
 class InvoiceManager:
-    def __init__(self, client_id):
+    def __init__(self, client_id=None):
         self.client_id = client_id
         self.prod_invoice = environ.get('LIGHT_ENV', 'prod') == 'prod'
         if self.prod_invoice:
@@ -65,8 +65,11 @@ class InvoiceManager:
         return None
 
     def make_invoice_prod(self, amt):
-        """make an invoice for a given amt"""
-        invoice_request = Invoice(value=amt, expiry=3600, description_hash=self.client_id)
+        """make an invoice for a given amt
+        was setting description_hash=self.client_id,
+        but apparently this errs for user when lacking a description
+        """
+        invoice_request = Invoice(value=amt, expiry=3600)
         invoice_response = self.stub.AddInvoice(invoice_request)
         invoice = invoice_response.payment_request
         return invoice
@@ -130,9 +133,9 @@ class InvoiceManager:
 
 @app.route("/")
 def hello():
-    invoice_manager = InvoiceManager(get_client_id())
+    invoice_manager = InvoiceManager()
     amt = request.args.get('amt', None)
-    sleep(.3)  # a slight throttle
+    sleep(.75)  # a slight throttle
     return invoice_manager.get_html(amt)
 
 
