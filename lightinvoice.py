@@ -48,9 +48,7 @@ class InvoiceManager:
         return invoice
 
     def make_invoice_test(self):
-        import uuid
-        invoice = (str(uuid.uuid4()) * 8).replace('-', '')[:196]
-        return invoice
+        return "This is a lame test invoice"
 
     def get_invoice(self, amt):
         if self.prod_invoice:
@@ -104,7 +102,7 @@ class InvoiceManager:
 def hello():
     invoice_manager = InvoiceManager()
     amt = request.args.get('amt', None)
-    sleep(.9)  # a slight throttle to mitigate attacks
+    sleep(1)  # a slight throttle to mitigate attacks
     return invoice_manager.get_html(amt)
 
 
