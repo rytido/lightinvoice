@@ -8,7 +8,7 @@ Using the app on Heroku requires remote access to your LND node via port 10009.
 You need to set tlsextraip in lnd.conf and recreate tls.cert to use remotely. 
 See the LND configuration docs for more info.
 
-Also note that there is not currently any limit on the number of invoices that could be created, so anyone with access to this app could potentially DoS your node. This is an issue I'd like to address, but I'm not sure if there is a simple way without introducing state outside of the LND node.
+Also note that there is not currently any limit on the number of invoices that could be created, so anyone with access to this app could maliciously create a whole lot of unused invoices. Without identifying users in some way, whether by ip address or cookies, I'm not sure there's a good way around this. I did attempt to identify ip address for a time, but I feel it's against the bitcoin ethos. Instead there is a small `sleep` to put some limit on the rate of invoice creation and prevent a DoS attack.
 
 ### Local
 
