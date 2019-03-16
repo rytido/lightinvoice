@@ -67,11 +67,15 @@ class InvoiceManager:
     def make_invoice_test(self):
         return "This is a lame test invoice"
 
-    def get_invoice(self, amt):
+    def set_invoice(self, amt):
         if self.prod_invoice:
-            return self.make_invoice_test()  # make_invoice_prod(amt)
+            payreq = self.find_invoice(amt)
+            if payreq:
+                self.payreq = payreq
+            else:
+                self.payreq = self.make_invoice_prod(amt)
         else:
-            return self.make_invoice_test()
+            self.payreq = self.make_invoice_test()
 
     def encode_invoice(self, invoice):
         img = makeqr(invoice, image_factory=SvgPathImage)
@@ -79,16 +83,17 @@ class InvoiceManager:
         img.save(bytes_io)
         return b64encode(bytes_io.getvalue()).decode("ascii")
 
-    def subscribe_invoice(self):
+    def invoice_settled(self):
         for invoice in self.stub.SubscribeInvoices(InvoiceSubscription()):
-            return invoice.payment_request
+            if invoice.settled and invoice.payment_request == self.payreq:
+                return True
 
     def get_html(self, amt):
         if amt:
-            invoice = self.get_invoice(int(amt[0]))
-            encoded = self.encode_invoice(invoice)
+            self.set_invoice(int(amt[0]))
+            encoded = self.encode_invoice(self.payreq)
             qr = f"data:image/svg+xml;base64,{encoded}"
-            inout = f'<textarea readonly>{invoice}</textarea>'
+            inout = f'<textarea readonly>{self.payreq}</textarea>'
             button_label = 'Cancel'
         else:
             qr = url_for('static', filename='bolt.svg')
@@ -127,16 +132,16 @@ invoice_manager = InvoiceManager()
 @app.route("/")
 def hello():
     amt = request.args.get('amt', None)
-    sleep(1)  # a slight throttle to mitigate attacks
+    if amt:
+        sleep(1)  # a slight throttle to mitigate attacks
     return invoice_manager.get_html(amt)
 
 
 @app.route("/success")
 def success():
     def success_stream():
-        # req = invoice_manager.subscribe_invoice()
-        req = invoice_manager.list_invoices()[-1].payment_request
-        return f"data: {req}\n\n"
+        if invoice_manager.invoice_settled():
+            return f"data: success\n\n"
 
     return Response(success_stream(), mimetype="text/event-stream")
 

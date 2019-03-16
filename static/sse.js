@@ -1,9 +1,17 @@
 window.onload = function(){
 
-    var eventSource = new EventSource("/success");
+    var url = new URL(window.location.href);
+    var amt = url.searchParams.get("amt");
+    if (amt != null) {
 
-    eventSource.onmessage = function(e) {
-        console.log(e.data);
+        var eventSource = new EventSource("/success");
+
+        eventSource.onmessage = function(e) {
+            if (e.data == "success") {
+                alert("payment received!")
+            }
+        };
+
     };
 
 };
