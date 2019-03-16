@@ -7,9 +7,9 @@ from time import sleep
 from qrcode import make as makeqr
 from qrcode.image.svg import SvgPathImage
 from rpc_pb2_grpc import LightningStub
-from rpc_pb2 import Invoice
+from rpc_pb2 import Invoice, ListInvoiceRequest, InvoiceSubscription
 import grpc
-from flask import Flask, request, url_for
+from flask import Flask, request, url_for, Response
 app = Flask(__name__)
 environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
@@ -37,6 +37,23 @@ class InvoiceManager:
             self.channel = open_channel()
             self.stub = LightningStub(self.channel)
 
+    def list_invoices(self):
+        """get an invoice for a given amt"""
+        req = ListInvoiceRequest(pending_only=True, num_max_invoices=10, reversed=True)
+        invoices = self.stub.ListInvoices(req).invoices
+        return invoices
+
+    def find_invoice(self, amt):
+        """find an invoice"""
+        from time import time
+        invoices = self.list_invoices()
+        t0 = time()
+        for invoice in invoices:
+            if invoice.creation_date + invoice.expiry > t0 + 30:
+                if invoice.value == amt:
+                    return invoice.payment_request
+        return None
+
     def make_invoice_prod(self, amt):
         """make an invoice for a given amt
         was setting description_hash=self.client_id,
@@ -52,7 +69,7 @@ class InvoiceManager:
 
     def get_invoice(self, amt):
         if self.prod_invoice:
-            return self.make_invoice_prod(amt)
+            return self.make_invoice_test()  # make_invoice_prod(amt)
         else:
             return self.make_invoice_test()
 
@@ -61,6 +78,10 @@ class InvoiceManager:
         bytes_io = BytesIO()
         img.save(bytes_io)
         return b64encode(bytes_io.getvalue()).decode("ascii")
+
+    def subscribe_invoice(self):
+        for invoice in self.stub.SubscribeInvoices(InvoiceSubscription()):
+            return invoice.payment_request
 
     def get_html(self, amt):
         if amt:
@@ -76,6 +97,7 @@ class InvoiceManager:
 
         favicon_url = url_for('static', filename='favicon.png')
         css_url = url_for('static', filename='simple.css')
+        js_url = url_for('static', filename='sse.js')
 
         html = f'''
         <html>
@@ -83,6 +105,7 @@ class InvoiceManager:
         <title>Lightning Invoice</title>
         <link rel="shortcut icon" type="image/png" href="{favicon_url}"/>
         <link rel="stylesheet" href="{css_url}">
+        <script src="{js_url}"></script>
         </head>
         <body>
         <img src="{qr}">
@@ -98,12 +121,24 @@ class InvoiceManager:
         return html
 
 
+invoice_manager = InvoiceManager()
+
+
 @app.route("/")
 def hello():
-    invoice_manager = InvoiceManager()
     amt = request.args.get('amt', None)
     sleep(1)  # a slight throttle to mitigate attacks
     return invoice_manager.get_html(amt)
+
+
+@app.route("/success")
+def success():
+    def success_stream():
+        # req = invoice_manager.subscribe_invoice()
+        req = invoice_manager.list_invoices()[-1].payment_request
+        return f"data: {req}\n\n"
+
+    return Response(success_stream(), mimetype="text/event-stream")
 
 
 if __name__ == "__main__":
