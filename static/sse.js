@@ -1,9 +1,25 @@
 window.onload = function(){
 
-    var eventSource = new EventSource("/success");
+    var modal = document.getElementById('success_modal');
 
-    eventSource.onmessage = function(e) {
-        console.log(e.data);
+    window.onclick = function(event) {
+      if (event.target != modal) {
+        modal.style.display = "none";
+      }
+    }
+
+    var url = new URL(window.location.href);
+    var amt = url.searchParams.get("amt");
+    if (amt != null) {
+
+        var eventSource = new EventSource("/success");
+
+        eventSource.onmessage = function(e) {
+            if (e.data == "success") {
+                modal.style.display = "block";
+            }
+        };
+
     };
 
 };

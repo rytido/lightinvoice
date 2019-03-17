@@ -1,0 +1,18 @@
+<html>
+<head>
+<title>Lightning Invoice</title>
+<link rel="shortcut icon" type="image/png" href="/static/favicon.png"/>
+<link rel="stylesheet" href="/static/simple.css">
+<script src="/static/sse.js"></script>
+</head>
+<body>
+<img src="{{qr}}">
+<div class="centered">
+<form action="/">
+<div>{{inout|safe}}</div>
+<div><button type="submit">{{button_label}}</button></div>
+</form>
+</div>
+<div id="success_modal" class="modal">Payment Received!</div>
+</body>
+</html>
