@@ -3,7 +3,7 @@ from codecs import encode as encodedata
 from os import environ
 from io import BytesIO
 from base64 import b64encode, decodebytes
-from time import sleep
+from time import sleep, time
 from qrcode import make as makeqr
 from qrcode.image.svg import SvgPathImage
 from rpc_pb2_grpc import LightningStub
@@ -32,7 +32,8 @@ def open_channel():
 
 class InvoiceManager:
     def __init__(self):
-        self.prod_invoice = environ.get('LIGHT_ENV', 'prod') == 'prod'
+        env = environ.get('LIGHT_ENV', 'prod').lower()
+        self.prod_invoice = env == 'prod'
         if self.prod_invoice:
             self.channel = open_channel()
             self.stub = LightningStub(self.channel)
@@ -47,20 +48,15 @@ class InvoiceManager:
 
     def find_invoice(self, amt):
         """find an invoice"""
-        from time import time
-        invoices = self.list_invoices()
         t0 = time()
-        for invoice in invoices:
-            if invoice.creation_date + invoice.expiry > t0 + 30:
+        for invoice in self.list_invoices():
+            if invoice.creation_date + invoice.expiry > t0 + 60:
                 if invoice.value == amt:
                     return invoice.payment_request
         return None
 
     def make_invoice_prod(self, amt):
-        """make an invoice for a given amt
-        was setting description_hash=self.client_id,
-        but apparently this errs for user when lacking a description
-        """
+        """make an invoice for a given amt"""
         invoice_request = Invoice(value=amt, expiry=3600)
         invoice_response = self.stub.AddInvoice(invoice_request)
         invoice = invoice_response.payment_request
@@ -69,13 +65,16 @@ class InvoiceManager:
     def make_invoice_test(self):
         return "This is a lame test invoice"
 
+    def reuse_unsettled(self, amt):
+        payreq = self.find_invoice(amt)
+        if payreq:
+            self.payreq = payreq
+        else:
+            self.payreq = self.make_invoice_prod(amt)
+
     def set_invoice(self, amt):
         if self.prod_invoice:
-            payreq = self.find_invoice(amt)
-            if payreq:
-                self.payreq = payreq
-            else:
-                self.payreq = self.make_invoice_prod(amt)
+            self.payreq = self.make_invoice_prod(amt)
         else:
             self.payreq = self.make_invoice_test()
 

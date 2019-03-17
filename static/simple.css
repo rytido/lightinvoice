@@ -1,4 +1,4 @@
-* {border-radius:6px;}
+* {border-radius:6px; font-family:sans-serif;}
 
 textarea {
 width:260px; height:80px; margin-top:16px;
@@ -22,10 +22,21 @@ background:#111111;
 }
 
 img {
-display:block; margin:auto; width:90%; 
+display:block; margin:auto; width:90%;
 max-width:720px; max-height:60vh;
 }
 
 .centered {
 margin:auto; width:80%; text-align:center;
+}
+
+.modal {
+    display: none; z-index: 1;
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #FF9900;
+    width: 300px; height:auto; padding: 32px;
+    border:3px solid #333333; font-size:56px;
+    color:#333333;
+    text-align:center;
 }

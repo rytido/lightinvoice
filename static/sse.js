@@ -1,5 +1,13 @@
 window.onload = function(){
 
+    var modal = document.getElementById('success_modal');
+
+    window.onclick = function(event) {
+      if (event.target != modal) {
+        modal.style.display = "none";
+      }
+    }
+
     var url = new URL(window.location.href);
     var amt = url.searchParams.get("amt");
     if (amt != null) {
@@ -8,7 +16,7 @@ window.onload = function(){
 
         eventSource.onmessage = function(e) {
             if (e.data == "success") {
-                alert("payment received!")
+                modal.style.display = "block";
             }
         };
 
