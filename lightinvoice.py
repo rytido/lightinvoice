@@ -9,7 +9,7 @@ from qrcode.image.svg import SvgPathImage
 from rpc_pb2_grpc import LightningStub
 from rpc_pb2 import Invoice, ListInvoiceRequest, InvoiceSubscription
 import grpc
-from flask import Flask, request, url_for, Response
+from flask import Flask, request, Response, render_template
 app = Flask(__name__)
 environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
@@ -39,7 +39,9 @@ class InvoiceManager:
 
     def list_invoices(self):
         """get an invoice for a given amt"""
-        req = ListInvoiceRequest(pending_only=True, num_max_invoices=10, reversed=True)
+        req = ListInvoiceRequest(
+            pending_only=True, reversed=True, num_max_invoices=20
+        )
         invoices = self.stub.ListInvoices(req).invoices
         return invoices
 
@@ -96,34 +98,11 @@ class InvoiceManager:
             inout = f'<textarea readonly>{self.payreq}</textarea>'
             button_label = 'Cancel'
         else:
-            qr = url_for('static', filename='bolt.svg')
-            inout = '<input type="number" name="amt" min="0" max="5000000" placeholder="satoshis" pattern="[0-9]*">'
+            qr = "/static/bolt.svg"
+            inout = '''<input type="number" name="amt" min="0" max="5000000"
+                placeholder="satoshis" pattern="[0-9]*">'''
             button_label = 'Generate Invoice'
-
-        favicon_url = url_for('static', filename='favicon.png')
-        css_url = url_for('static', filename='simple.css')
-        js_url = url_for('static', filename='sse.js')
-
-        html = f'''
-        <html>
-        <head>
-        <title>Lightning Invoice</title>
-        <link rel="shortcut icon" type="image/png" href="{favicon_url}"/>
-        <link rel="stylesheet" href="{css_url}">
-        <script src="{js_url}"></script>
-        </head>
-        <body>
-        <img src="{qr}">
-        <div class="centered">
-        <form action="/">
-        <div>{inout}</div>
-        <div><button type="submit">{button_label}</button></div>
-        </form>
-        </div>
-        </body>
-        </html>'''
-
-        return html
+        return qr, inout, button_label
 
 
 invoice_manager = InvoiceManager()
@@ -134,7 +113,10 @@ def hello():
     amt = request.args.get('amt', None)
     if amt:
         sleep(1)  # a slight throttle to mitigate attacks
-    return invoice_manager.get_html(amt)
+    qr, inout, button_label = invoice_manager.get_html(amt)
+    return render_template(
+        'index.html', qr=qr, inout=inout, button_label=button_label
+    )
 
 
 @app.route("/success")
@@ -142,7 +124,6 @@ def success():
     def success_stream():
         if invoice_manager.invoice_settled():
             return f"data: success\n\n"
-
     return Response(success_stream(), mimetype="text/event-stream")
 
 
